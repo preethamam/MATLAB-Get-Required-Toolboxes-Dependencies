@@ -1,4 +1,4 @@
-# requiredToolboxes.m
+# Required toolboxes and dependencies in MATLAB scripts (requiredToolboxes.m)
 
 Comprehensive dependency auditor for MATLAB projects. This script scans a folder of `.m` source files, determines which MathWorks products/toolboxes each file requires, and writes a structured multi‑section report to `requirements.txt`. It helps you:
 
@@ -309,6 +309,7 @@ SOFTWARE.
 - If integrating into a larger codebase with a different license, clarify dual‑licensing or exceptions in that repository's primary LICENSE file.
 
 ### Optional Single-File Header (Copy/Paste if desired)
+
 ```matlab
 % requiredToolboxes.m (MIT License)
 % Copyright (c) 2025 YOUR NAME OR ORGANIZATION
