@@ -1,5 +1,5 @@
 # Required toolboxes and dependencies in MATLAB scripts (requiredToolboxes.m)
-[![View Required toolboxes and dependencies in MATLAB scripts on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/182634-required-toolboxes-and-dependencies-in-matlab-scripts) [![Open in MATLAB Online](https://matlab.mathworks.com/open/fileexchange/v1?id=182634)
+[![View Required toolboxes and dependencies in MATLAB scripts on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/182634-required-toolboxes-and-dependencies-in-matlab-scripts) [![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=preethamam/MATLAB-Get-Required-Toolboxes-Dependencies)
 
 Comprehensive dependency auditor for MATLAB projects. This script scans a folder of `.m` source files, determines which MathWorks products/toolboxes each file requires, and writes a structured multi‑section report to `requirements.txt`. It helps you:
 
