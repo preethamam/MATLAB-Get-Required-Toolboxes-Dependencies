@@ -283,7 +283,7 @@ This project is released under the MIT License. You may use, copy, modify, merge
 
 ### MIT License Text
 
-Copyright (c) 2025 YOUR NAME OR ORGANIZATION
+Copyright (c) 2025 Preetham Manjunatha
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -313,7 +313,7 @@ SOFTWARE.
 
 ```matlab
 % requiredToolboxes.m (MIT License)
-% Copyright (c) 2025 YOUR NAME OR ORGANIZATION
+% Copyright (c) 2025 Preetham Manjunatha
 % Permission is hereby granted, free of charge, to any person obtaining a copy
 % of this software and associated documentation files (the "Software"), to deal
 % in the Software without restriction, including without limitation the rights
