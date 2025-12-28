@@ -7,7 +7,7 @@ clc; close all; clear;
 
 %% User settings
 
-folderPath = pwd;
+folderPath = 'D:\OneDrive\Education Materials\Applications\Toolboxes\Matlab\My Functions\AutoPanoStitch\Procedural Program';
 
 ignoreFiles = {
     'scrachPaper.m'
@@ -23,13 +23,13 @@ end
 
 %% Collect .m files
 
-fileStruct = dir(fullfile(folderPath, '*.m'));
+fileStruct = dir(fullfile(folderPath, '**', '*.m'));
 filesArray = {};
 
 for k = 1:numel(fileStruct)
     fileName = fileStruct(k).name;
     if ~ismember(fileName, ignoreFiles)
-        filesArray{end+1,1} = fullfile(folderPath, fileName); %#ok<SAGROW>
+        filesArray{end+1,1} = fullfile(fileStruct(k).folder, fileName); %#ok<SAGROW>
     end
 end
 
