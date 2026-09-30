@@ -1,7 +1,7 @@
 # Required toolboxes and dependencies in MATLAB scripts (requiredToolboxes.m)
 [![View Required toolboxes and dependencies in MATLAB scripts on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/182634-required-toolboxes-and-dependencies-in-matlab-scripts) [![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=preethamam/MATLAB-Get-Required-Toolboxes-Dependencies)
 
-Comprehensive dependency auditor for MATLAB projects. This script scans a folder of `.m` source files, determines which MathWorks products/toolboxes each file requires, and writes a structured multi‑section report to `requirements.txt`. It helps you:
+Comprehensive dependency auditor for MATLAB projects. This script scans a folder (and all of its sub-folders) of `.m` source files, determines which MathWorks products/toolboxes each file requires, and writes a structured multi‑section report to `requirements.txt`. It helps you:
 
 - Document project toolbox dependencies for onboarding & reproducibility
 - Detect stray or implicit dependencies early (e.g., before CI packaging)
@@ -12,7 +12,7 @@ Comprehensive dependency auditor for MATLAB projects. This script scans a folder
 
 ## 1. High‑Level Overview
 
-`requiredToolboxes.m` enumerates MATLAB products used by every non‑ignored `.m` file in a target directory. It leverages the built‑in function `matlab.codetools.requiredFilesAndProducts` to infer dependencies, aggregating both a global toolbox list and per‑file listings, including version and product number metadata when available.
+`requiredToolboxes.m` enumerates MATLAB products used by every non‑ignored `.m` file in a target directory and its sub-folders. It leverages the built‑in function `matlab.codetools.requiredFilesAndProducts` to infer dependencies, aggregating both a global toolbox list and per‑file listings, including version and product number metadata when available.
 
 The script produces zero console output until completion (except a final confirmation). All detail is written to `requirements.txt` for easy tracking or diffing in version control.
 
@@ -24,7 +24,9 @@ The script produces zero console output until completion (except a final confirm
 - Per‑toolbox usage summary: How many files use each toolbox + the file names.
 - Per‑file toolbox listing: Exact toolboxes each source file requires.
 - File provenance: Each toolbox entry tracks the specific files necessitating it.
-- Ignore list support: Exclude helper, scratch, or meta scripts from analysis.
+- Recursive scanning: Walks the root folder and every sub-folder.
+- File ignore list (`ignoreFiles`): Exclude helper, scratch, or meta scripts from analysis.
+- Folder ignore list (`ignoreFolders`): Exclude whole folders — including all their files and sub-folders — by name, relative path, or absolute path.
 - Single artifact output: Clean, text‑only `requirements.txt` (diff‑friendly).
 - Safe failure: Graceful message if no `.m` files remain after ignoring.
 
@@ -34,12 +36,13 @@ The script produces zero console output until completion (except a final confirm
 
 When you run the script:
 
-1. Collects all `.m` files in `folderPath` (default: current directory `pwd`).
-2. Excludes any names listed in `ignoreFiles`.
-3. Invokes `matlab.codetools.requiredFilesAndProducts` per file to retrieve a list of product structs (`Name`, `Version`, `ProductNumber`).
-4. Aggregates results into a `containers.Map` keyed by toolbox name.
-5. Writes structured sections to `requirements.txt`.
-6. Prints `Requirements file is created.` once finished.
+1. Collects all `.m` files in `folderPath` and its sub-folders (`dir(fullfile(folderPath, '**', '*.m'))`).
+2. Excludes any file names listed in `ignoreFiles`.
+3. Excludes every file that lives in (or below) a folder listed in `ignoreFolders`.
+4. Invokes `matlab.codetools.requiredFilesAndProducts` per file to retrieve a list of product structs (`Name`, `Version`, `ProductNumber`).
+5. Aggregates results into a `containers.Map` keyed by toolbox name.
+6. Writes structured sections to `requirements.txt`.
+7. Prints `Requirements file is created.` once finished.
 
 ---
 
@@ -92,9 +95,9 @@ requiredToolboxes
 
 (Or modify the assignment inside the script permanently.)
 
-### Updating Ignore List
+### Updating the Ignore Lists
 
-Edit the cell array:
+**Ignore individual files** — edit `ignoreFiles`:
 
 ```matlab
 ignoreFiles = {
@@ -104,7 +107,25 @@ ignoreFiles = {
 };
 ```
 
-Use exact file names (case‑sensitive on case‑sensitive file systems).
+Use exact file names (case‑sensitive on case‑sensitive file systems). A listed name is ignored in every folder it appears in.
+
+**Ignore whole folders** — edit `ignoreFolders`. A matched folder is skipped together with all of its files and sub-folders:
+
+```matlab
+ignoreFolders = {
+    '.git'                        % bare name: skips any folder named .git, at any depth
+    'tests'                       % bare name: skips root/tests, root/src/tests, ...
+    'external/legacy'             % relative path: skips only root/external/legacy (and below)
+    'D:/project/sandbox'          % absolute path: skips that exact folder (and below)
+};
+```
+
+Matching rules:
+
+- An entry **without** a path separator is a folder *name* and matches at any depth.
+- An entry **with** a separator (`/` or `\`) is a *path*, matched relative to `folderPath` or as an absolute path.
+- Matching is whole-folder only (`test` does not match `tests`), and case‑insensitive on Windows.
+- Leave it empty (`ignoreFolders = {};`) to scan everything.
 
 ---
 
@@ -157,6 +178,7 @@ Per-file required MATLAB products/toolboxes:
 | -------------------------------------------- | ----------------------- | ------------------------------------------------------------------- |
 | `folderPath`                               | Top of script           | Target folder to scan                                               |
 | `ignoreFiles`                              | Top of script           | Exclude specific `.m` files                                       |
+| `ignoreFolders`                            | Top of script           | Exclude whole folders (and their files/sub-folders)                 |
 | `outputFile`                               | Derived from folderPath | Rename / relocate output if desired                                 |
 | Workspace reset (`clc; close all; clear;`) | Top of script           | Remove or comment out if you need current workspace state preserved |
 
@@ -199,7 +221,8 @@ Select-String -Path requirements.txt -Pattern "Curve Fitting Toolbox" | ForEach-
 - Does not inspect non‑MATLAB artifacts (MEX binaries, Simulink models, `.mlx` Live Scripts) unless they are reachable through referenced functions.
 - Product numbers may be empty or vary across releases.
 - Large projects: Per‑file invocation can be slower; still usually acceptable for typical codebases.
-- Ignoring patterns (e.g., all tests) requires manual list maintenance or script extension.
+- Ignore lists match exact file/folder names or paths; wildcard/regex patterns (e.g., `*_test.m`) require script extension.
+- Files with the same name in different sub-folders are reported by name only, so they appear as a single label in the output.
 
 ---
 
@@ -207,8 +230,8 @@ Select-String -Path requirements.txt -Pattern "Curve Fitting Toolbox" | ForEach-
 
 Potential enhancements:
 
-- Pattern‑based ignore (regex/glob).
-- Recursive subfolder scanning (currently only the single directory of `folderPath`).
+- Pattern‑based ignore (regex/glob) for files and folders.
+- Report relative paths instead of bare file names to disambiguate duplicates across sub-folders.
 - JSON/CSV output for machine consumption.
 - Separate sections for direct vs transitive dependencies.
 - Simulink model scanning via `slreportgen` APIs.
@@ -223,6 +246,7 @@ Potential enhancements:
 | `Could not open requirements.txt for writing.` | Permission or locked file                                   | Close file, check write permissions, ensure path exists    |
 | Empty global list when toolboxes are expected    | Dynamic calls / conditional code                            | Add explicit calls or extend analysis using custom parsers |
 | Missing file in output sections                  | File name present in `ignoreFiles` or not a `.m` script | Remove from ignore, ensure extension is `.m`             |
+| Whole folder missing from output                 | Folder (or a parent) matches an `ignoreFolders` entry       | Remove or narrow the entry (use a relative path instead of a bare name) |
 | Versions show unexpected placeholders            | MATLAB release differences                                  | Verify installation with `ver` command                   |
 
 Run `ver` to manually confirm available toolboxes:
@@ -236,31 +260,16 @@ ver
 ## 13. FAQ
 
 **Q: Does it detect dependencies inside nested folders?**
-A: Only files directly in `folderPath` (non‑recursive). Extend by replacing the `dir` call with a `genpath` traversal.
+A: Yes. It scans `folderPath` and all of its sub-folders recursively.
+
+**Q: How do I skip a folder and everything inside it?**
+A: Add it to `ignoreFolders`. Use a bare name (e.g. `'tests'`) to skip every folder with that name, or a relative path (e.g. `'external/legacy'`) to skip one specific folder.
 
 **Q: Can I run it without clearing my workspace?**
 A: Yes—comment out `clc; close all; clear;` if you need existing variables.
 
 **Q: Are Live Scripts (`.mlx`) supported?**
 A: Not directly; convert to `.m` or add a secondary analysis pass.
-
-**Q: How do I add recursion?**
-A: Replace the file collection block with:
-
-```matlab
-fileList = regexp(genpath(folderPath), pathsep, 'split');
-filesArray = {};
-for p = 1:numel(fileList)
-    if isempty(fileList{p}); continue; end
-    mFiles = dir(fullfile(fileList{p}, '*.m'));
-    for k = 1:numel(mFiles)
-        name = mFiles(k).name;
-        if ~ismember(name, ignoreFiles)
-            filesArray{end+1,1} = fullfile(fileList{p}, name); %#ok<SAGROW>
-        end
-    end
-end
-```
 
 ---
 
@@ -269,7 +278,7 @@ end
 Since this is a single self‑contained utility, typical contributions involve:
 
 - Enhancing output formatting (Markdown / JSON)
-- Adding recursion or pattern ignores
+- Adding pattern-based ignores
 - Improving performance (batch product query)
 - Increasing robustness for dynamic calls
 
@@ -341,6 +350,7 @@ SOFTWARE.
 | Run audit (CI)            | `matlab -batch "requiredToolboxes"` |
 | Change target folder      | Edit `folderPath` before run        |
 | Ignore a file             | Add name to `ignoreFiles`           |
+| Ignore a folder           | Add name/path to `ignoreFolders`    |
 | Change output file name   | Modify `outputFile` assignment      |
 | Check installed toolboxes | `ver`                               |
 

@@ -1,17 +1,33 @@
 % requiredToolboxes.m
-% List MATLAB products/toolboxes required by all .m files in a folder,
-% excluding files listed in ignoreFiles, and report per-file usage.
+% List MATLAB products/toolboxes required by all .m files in a folder and
+% its sub-folders, excluding files listed in ignoreFiles and folders listed
+% in ignoreFolders, and report per-file usage.
 % All output written to requirements.txt (no console output).
 
 clc; close all; clear;
 
 %% User settings
 
-folderPath = 'D:\OneDrive\Education Materials\Applications\Toolboxes\Matlab\My Functions\AutoPanoStitch\Procedural Program';
+folderPath = 'D:\OneDrive\Education Materials\Team Work\Team SyntheticCRACK\Codebase\2022-01-22 - A graph-based (non-force)';
 
 ignoreFiles = {
     'scrachPaper.m'
     'requiredToolboxes.m'
+};
+
+% Folders to skip (the folder, its files, and all of its sub-folders).
+%   - A bare name (e.g. 'tests') skips every folder with that name at any depth.
+%   - A path (e.g. 'external/old') skips that folder relative to folderPath.
+%   - An absolute path skips that exact folder.
+ignoreFolders = {
+    '.git'
+    'Archive'
+    'assets'
+    'MAT Files'
+    'MATLAB - Crackmasks'
+    'Others'
+    'Python - DL Image Segmentor'
+    'Results'
 };
 
 outputFile = fullfile(folderPath, 'requirements.txt');
@@ -26,15 +42,22 @@ end
 fileStruct = dir(fullfile(folderPath, '**', '*.m'));
 filesArray = {};
 
+rootNorm   = normalizePath(folderPath);
+ignoreNorm = cellfun(@normalizePath, ignoreFolders, 'UniformOutput', false);
+
 for k = 1:numel(fileStruct)
     fileName = fileStruct(k).name;
-    if ~ismember(fileName, ignoreFiles)
-        filesArray{end+1,1} = fullfile(fileStruct(k).folder, fileName); %#ok<SAGROW>
+    if fileStruct(k).isdir || ismember(fileName, ignoreFiles)
+        continue;
     end
+    if isInIgnoredFolder(fileStruct(k).folder, rootNorm, ignoreNorm)
+        continue;
+    end
+    filesArray{end+1,1} = fullfile(fileStruct(k).folder, fileName); %#ok<SAGROW>
 end
 
 if isempty(filesArray)
-    fprintf(fid, 'No .m files found after applying ignore list.\nFolder: %s\n', folderPath);
+    fprintf(fid, 'No .m files found after applying ignore lists.\nFolder: %s\n', folderPath);
     fclose(fid);
     return;
 end
@@ -150,4 +173,50 @@ fclose(fid);
 
 %% Final console output
 disp('Requirements file is created.');
+
+%% Local functions
+
+function p = normalizePath(p)
+% Use '/' separators, drop trailing separators, and fold case on Windows.
+p = strrep(char(p), '\', '/');
+while numel(p) > 1 && p(end) == '/'
+    p(end) = [];
+end
+if ispc
+    p = lower(p);
+end
+end
+
+function tf = isInIgnoredFolder(folder, rootNorm, ignoreNorm)
+% True if folder is, or lies inside, any folder listed in ignoreFolders.
+folderNorm = normalizePath(folder);
+if strncmp(folderNorm, [rootNorm '/'], numel(rootNorm) + 1)
+    relPath = folderNorm(numel(rootNorm) + 2:end);
+else
+    relPath = '';   % file sits directly in folderPath
+end
+segments = strsplit(relPath, '/');
+
+tf = false;
+for i = 1:numel(ignoreNorm)
+    entry = ignoreNorm{i};
+    if isempty(entry)
+        continue;
+    end
+    if contains(entry, '/')
+        % Relative (to folderPath) or absolute folder path
+        tf = pathStartsWith(relPath, entry) || pathStartsWith(folderNorm, entry);
+    else
+        % Bare folder name: match at any depth
+        tf = any(strcmp(segments, entry));
+    end
+    if tf
+        return;
+    end
+end
+end
+
+function tf = pathStartsWith(p, prefix)
+tf = strcmp(p, prefix) || strncmp(p, [prefix '/'], numel(prefix) + 1);
+end
 
